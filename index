@@ -2,8 +2,8 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eMarket Super - Offline & Smart</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>eMarket Super</title>
     <link href="https://fonts.cdnfonts.com/css/digital-numbers" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
@@ -12,7 +12,7 @@
             --vfd-bg: #050505; --vfd-cyan: #00ffff; --vfd-cyan-glow: rgba(0, 255, 255, 0.4);
         }
         body { font-family: 'Segoe UI', sans-serif; background-color: #dcdde1; display: flex; justify-content: center; padding: 5px; margin: 0; }
-        .app-container { width: 100%; max-width: 450px; background: white; min-height: 98vh; padding: 10px 15px; border-radius: 15px; box-sizing: border-box; }
+        .app-container { width: 100%; max-width: 450px; background: white; min-height: 95vh; padding: 10px 15px; border-radius: 15px; box-sizing: border-box; }
         h1 { text-align: center; color: var(--primary); font-size: 1.3rem; margin: 5px 0 10px 0; }
         h2 { font-size: 1rem; margin: 2px 0 10px 0; color: var(--primary); text-align: center; }
         .vfd-dashboard { background: var(--vfd-bg); color: var(--vfd-cyan); padding: 10px; border-radius: 8px; display: flex; justify-content: space-around; align-items: center; margin-bottom: 15px; font-family: 'Digital Numbers', sans-serif; border: 2px solid #222; box-shadow: inset 0 0 10px rgba(0,0,0,1); }
@@ -27,9 +27,9 @@
         .campo { margin-bottom: 6px; }
         .campo label { display: block; margin-bottom: 2px; font-weight: bold; font-size: 0.8rem; }
         input { width: 100%; padding: 8px; border: 2px solid #eee; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        .form-row-compact { display: flex; justify-content: space-between; gap: 10px; }
+        .form-row-compact { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 5px; }
         .form-col-50 { flex: 0 0 48%; }
-        #reader { width: 100%; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 10px; display: none; }
+        #reader { width: 100%; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 10px; display: none; min-height: 200px; }
         .item-carrinho { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #f1f1f1; cursor: pointer; font-size: 0.9rem; }
         .item-carrinho div strong::before { content: '✎ '; color: var(--primary); margin-right: 3px; }
         .total-rodape { margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid var(--accent); display: flex; justify-content: space-between; font-weight: bold; }
@@ -55,8 +55,8 @@
         <input type="hidden" id="editIndex">
         <div class="campo"><label>Descrição/Código</label><input type="text" id="desc" placeholder="Nome ou Código"></div>
         <div class="form-row-compact">
-            <div class="form-col-50"><div class="campo"><label>Qtd</label><input type="number" id="qtd" value="1"></div></div>
-            <div class="form-col-50"><div class="campo"><label>Valor Unit.</label><input type="number" id="valor" step="0.01"></div></div>
+            <div class="form-col-50"><div class="campo"><label>Quantidade</label><input type="number" id="qtd" value="1"></div></div>
+            <div class="form-col-50"><div class="campo"><label>Valor Unitário</label><input type="number" id="valor" step="0.01" placeholder="0.00"></div></div>
         </div>
         <button class="btn-sucesso" onclick="salvarProduto()">Confirmar</button>
         <button id="btnExcluir" class="btn-perigo" onclick="excluirProduto()">Excluir Item</button>
@@ -98,30 +98,50 @@
         else {
             readerDiv.style.display = 'block';
             html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 },
+            
+            // Configuração simplificada para evitar chamar Realidade Aumentada
+            const config = { 
+                fps: 10, 
+                qrbox: { width: 250, height: 150 },
+                aspectRatio: 1.0 
+            };
+
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                config,
                 (text) => {
                     document.getElementById('desc').value = dicionario[text] || text;
                     pararScanner();
                 }
-            ).catch(() => alert("Use HTTPS para a câmera funcionar!"));
+            ).catch(err => {
+                console.error(err);
+                alert("Dica: Se aparecer aviso de RA, clique em 'Sair' ou 'Voltar'. A câmera deve abrir em seguida.");
+            });
         }
     }
 
-    function pararScanner() { if(html5QrCode) { html5QrCode.stop(); document.getElementById('reader').style.display = 'none'; } }
+    function pararScanner() { 
+        if(html5QrCode && html5QrCode.isScanning) { 
+            html5QrCode.stop().then(() => {
+                document.getElementById('reader').style.display = 'none';
+            });
+        } else {
+            document.getElementById('reader').style.display = 'none';
+        }
+    }
 
     function salvarProduto() {
         const index = parseInt(document.getElementById('editIndex').value);
         const desc = document.getElementById('desc').value;
         const qtd = parseInt(document.getElementById('qtd').value);
-        const valor = parseFloat(document.getElementById('valor').value);
+        const valor = parseFloat(document.getElementById('valor').value) || 0;
         
         if (desc && qtd > 0) {
-            const produto = { desc, qtd, valor: valor || 0 };
+            const produto = { desc, qtd, valor };
             if (index === -1) { carrinho.push(produto); } else { carrinho[index] = produto; }
             
-            // Salva no "Dicionário" se for um código
-            if (/^\d+$/.test(desc)) { dicionario[desc] = desc; } 
-            else if (document.getElementById('desc').value !== desc) { /* logic to link code to name */ }
+            // Lógica simples de dicionário: se a descrição for apenas números, guarda como código
+            if (/^\d+$/.test(desc)) { dicionario[desc] = desc; }
 
             localStorage.setItem('carrinho', JSON.stringify(carrinho));
             localStorage.setItem('dicionario', JSON.stringify(dicionario));
@@ -153,25 +173,39 @@
     function prepararAdd() {
         document.getElementById('tituloAcao').innerText = "Novo Produto";
         document.getElementById('editIndex').value = "-1";
+        document.getElementById('btnExcluir').style.display = "none";
         document.getElementById('desc').value = ""; document.getElementById('qtd').value = "1"; document.getElementById('valor').value = "";
         navegar('telaAdd');
     }
 
     function prepararEdicao(index) {
         const item = carrinho[index];
-        document.getElementById('tituloAcao').innerText = "Editar";
+        document.getElementById('tituloAcao').innerText = "Editar Produto";
         document.getElementById('editIndex').value = index;
+        document.getElementById('btnExcluir').style.display = "block";
         document.getElementById('desc').value = item.desc;
         document.getElementById('qtd').value = item.qtd;
         document.getElementById('valor').value = item.valor;
         navegar('telaAdd');
     }
 
-    function reiniciarApp() {
-        if(confirm("Limpar lista?")) { carrinho = []; localStorage.removeItem('carrinho'); navegar('telaInicial'); }
+    function excluirProduto() {
+        const index = document.getElementById('editIndex').value;
+        if (index > -1 && confirm("Excluir este item?")) {
+            carrinho.splice(index, 1);
+            localStorage.setItem('carrinho', JSON.stringify(carrinho));
+            navegar('telaInicial');
+        }
     }
 
-    // Inicia dashboards no carregamento
+    function reiniciarApp() {
+        if(confirm("Limpar lista atual?")) { 
+            carrinho = []; 
+            localStorage.setItem('carrinho', JSON.stringify(carrinho)); 
+            navegar('telaInicial'); 
+        }
+    }
+
     atualizarDashboards();
 </script>
 </body>
