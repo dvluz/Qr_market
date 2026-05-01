@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>eMarket Super</title>
+    <title>eMarket Super - Teste sem Câmera</title>
     <link href="https://fonts.cdnfonts.com/css/digital-numbers" rel="stylesheet">
-    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root {
             --primary: #2c3e50; --accent: #27ae60; --danger: #e74c3c;
@@ -22,16 +21,14 @@
         .btn-sucesso { background-color: var(--accent); }
         .btn-perigo { background-color: var(--danger); margin-top: 5px; }
         .btn-voltar { background-color: #7f8c8d; margin-top: 8px; }
-        .btn-scan { background-color: #3498db; margin-bottom: 10px; padding: 10px; font-size: 12px; }
+        .btn-scan { background-color: #95a5a6; margin-bottom: 10px; padding: 10px; font-size: 12px; }
         .tela { display: none; } .tela.ativa { display: block; }
         .campo { margin-bottom: 6px; }
         .campo label { display: block; margin-bottom: 2px; font-weight: bold; font-size: 0.8rem; color: var(--primary); }
         input { width: 100%; padding: 8px; border: 2px solid #eee; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
         .form-row-compact { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 5px; }
         .form-col-50 { flex: 0 0 48%; }
-        #reader { width: 100%; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 10px; display: none; min-height: 250px; }
         .item-carrinho { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #f1f1f1; cursor: pointer; font-size: 0.9rem; }
-        .item-carrinho div strong::before { content: '✎ '; color: var(--primary); margin-right: 3px; }
         .total-rodape { margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid var(--accent); display: flex; justify-content: space-between; font-weight: bold; }
     </style>
 </head>
@@ -50,17 +47,16 @@
 
     <div id="telaAdd" class="tela">
         <h2 id="tituloAcao">Novo Produto</h2>
-        <div id="reader"></div>
-        <button id="btnAbrirScan" class="btn-scan" onclick="alternarScanner()">📷 Ler Código de Barras</button>
+        <button class="btn-scan" onclick="alert('Câmera desativada para teste')">📷 Câmera Desativada (Teste)</button>
         <input type="hidden" id="editIndex">
-        <div class="campo"><label>Descrição/Código</label><input type="text" id="desc" placeholder="Nome ou Código"></div>
+        <div class="campo"><label>Descrição</label><input type="text" id="desc" placeholder="Nome do item"></div>
         <div class="form-row-compact">
             <div class="form-col-50"><div class="campo"><label>Quantidade</label><input type="number" id="qtd" value="1"></div></div>
             <div class="form-col-50"><div class="campo"><label>Valor Unitário</label><input type="number" id="valor" step="0.01" placeholder="0.00"></div></div>
         </div>
         <button class="btn-sucesso" onclick="salvarProduto()">Confirmar</button>
         <button id="btnExcluir" class="btn-perigo" onclick="excluirProduto()">Excluir Item</button>
-        <button class="btn-voltar" onclick="pararScanner(); navegar('telaInicial');">Voltar</button>
+        <button class="btn-voltar" onclick="navegar('telaInicial')">Voltar</button>
     </div>
 
     <div id="telaCarrinho" class="tela">
@@ -81,60 +77,13 @@
 
 <script>
     let carrinho = JSON.parse(localStorage.getItem('carrinho')) || [];
-    let dicionario = JSON.parse(localStorage.getItem('dicionario')) || {};
-    let html5QrCode;
 
     function navegar(idTela) {
         document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
         document.getElementById(idTela).classList.add('ativa');
         atualizarDashboards();
-        if(idTela === 'telaCarrinho') renderizarLista('listaCarrinho', 'carrinhoSubtotal', true);
-        if(idTela === 'telaFinalizar') renderizarLista('resumoFinal', 'finalTotal', true);
-    }
-
-    // FUNÇÃO DE SCANNER REFORMULADA PARA EVITAR RA
-    async function alternarScanner() {
-        const readerDiv = document.getElementById('reader');
-        
-        if (readerDiv.style.display === 'block') { 
-            pararScanner(); 
-        } else {
-            readerDiv.style.display = 'block';
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("reader");
-            }
-
-            try {
-                // Solicita apenas o vídeo básico, sem profundidade ou RA
-                const config = { 
-                    fps: 10, 
-                    qrbox: { width: 250, height: 150 }
-                };
-
-                await html5QrCode.start(
-                    { facingMode: "environment" }, 
-                    config,
-                    (text) => {
-                        document.getElementById('desc').value = dicionario[text] || text;
-                        pararScanner();
-                    }
-                );
-            } catch (err) {
-                console.error(err);
-                alert("Erro ao iniciar câmera. Se o aviso de RA aparecer, clique em 'Sair' e tente clicar no botão de câmera novamente.");
-                readerDiv.style.display = 'none';
-            }
-        }
-    }
-
-    function pararScanner() { 
-        if(html5QrCode && html5QrCode.isScanning) { 
-            html5QrCode.stop().then(() => {
-                document.getElementById('reader').style.display = 'none';
-            }).catch(err => console.error(err));
-        } else {
-            document.getElementById('reader').style.display = 'none';
-        }
+        if(idTela === 'telaCarrinho') renderizarLista('listaCarrinho', 'carrinhoSubtotal');
+        if(idTela === 'telaFinalizar') renderizarLista('resumoFinal', 'finalTotal');
     }
 
     function salvarProduto() {
@@ -146,12 +95,6 @@
         if (desc && qtd > 0) {
             const produto = { desc, qtd, valor };
             if (index === -1) { carrinho.push(produto); } else { carrinho[index] = produto; }
-            
-            // Se for código numérico puro, guarda no dicionário para "aprender"
-            if (/^\d+$/.test(desc) && desc.length > 5) {
-                // Futuramente podemos vincular código ao nome digitado aqui
-            }
-
             localStorage.setItem('carrinho', JSON.stringify(carrinho));
             navegar('telaInicial');
         }
@@ -163,7 +106,7 @@
         document.getElementById('homeQtd').innerText = carrinho.length.toString().padStart(2, '0');
     }
 
-    function renderizarLista(containerId, totalId, edit) {
+    function renderizarLista(containerId, totalId) {
         const container = document.getElementById(containerId);
         container.innerHTML = '';
         let total = 0;
