@@ -25,11 +25,11 @@
         .btn-scan { background-color: #3498db; margin-bottom: 10px; padding: 10px; font-size: 12px; }
         .tela { display: none; } .tela.ativa { display: block; }
         .campo { margin-bottom: 6px; }
-        .campo label { display: block; margin-bottom: 2px; font-weight: bold; font-size: 0.8rem; }
+        .campo label { display: block; margin-bottom: 2px; font-weight: bold; font-size: 0.8rem; color: var(--primary); }
         input { width: 100%; padding: 8px; border: 2px solid #eee; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
         .form-row-compact { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 5px; }
         .form-col-50 { flex: 0 0 48%; }
-        #reader { width: 100%; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 10px; display: none; min-height: 200px; }
+        #reader { width: 100%; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 10px; display: none; min-height: 250px; }
         .item-carrinho { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #f1f1f1; cursor: pointer; font-size: 0.9rem; }
         .item-carrinho div strong::before { content: '✎ '; color: var(--primary); margin-right: 3px; }
         .total-rodape { margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid var(--accent); display: flex; justify-content: space-between; font-weight: bold; }
@@ -92,31 +92,38 @@
         if(idTela === 'telaFinalizar') renderizarLista('resumoFinal', 'finalTotal', true);
     }
 
-    function alternarScanner() {
+    // FUNÇÃO DE SCANNER REFORMULADA PARA EVITAR RA
+    async function alternarScanner() {
         const readerDiv = document.getElementById('reader');
-        if (readerDiv.style.display === 'block') { pararScanner(); } 
-        else {
+        
+        if (readerDiv.style.display === 'block') { 
+            pararScanner(); 
+        } else {
             readerDiv.style.display = 'block';
-            html5QrCode = new Html5Qrcode("reader");
-            
-            // Configuração simplificada para evitar chamar Realidade Aumentada
-            const config = { 
-                fps: 10, 
-                qrbox: { width: 250, height: 150 },
-                aspectRatio: 1.0 
-            };
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
 
-            html5QrCode.start(
-                { facingMode: "environment" }, 
-                config,
-                (text) => {
-                    document.getElementById('desc').value = dicionario[text] || text;
-                    pararScanner();
-                }
-            ).catch(err => {
+            try {
+                // Solicita apenas o vídeo básico, sem profundidade ou RA
+                const config = { 
+                    fps: 10, 
+                    qrbox: { width: 250, height: 150 }
+                };
+
+                await html5QrCode.start(
+                    { facingMode: "environment" }, 
+                    config,
+                    (text) => {
+                        document.getElementById('desc').value = dicionario[text] || text;
+                        pararScanner();
+                    }
+                );
+            } catch (err) {
                 console.error(err);
-                alert("Dica: Se aparecer aviso de RA, clique em 'Sair' ou 'Voltar'. A câmera deve abrir em seguida.");
-            });
+                alert("Erro ao iniciar câmera. Se o aviso de RA aparecer, clique em 'Sair' e tente clicar no botão de câmera novamente.");
+                readerDiv.style.display = 'none';
+            }
         }
     }
 
@@ -124,7 +131,7 @@
         if(html5QrCode && html5QrCode.isScanning) { 
             html5QrCode.stop().then(() => {
                 document.getElementById('reader').style.display = 'none';
-            });
+            }).catch(err => console.error(err));
         } else {
             document.getElementById('reader').style.display = 'none';
         }
@@ -140,11 +147,12 @@
             const produto = { desc, qtd, valor };
             if (index === -1) { carrinho.push(produto); } else { carrinho[index] = produto; }
             
-            // Lógica simples de dicionário: se a descrição for apenas números, guarda como código
-            if (/^\d+$/.test(desc)) { dicionario[desc] = desc; }
+            // Se for código numérico puro, guarda no dicionário para "aprender"
+            if (/^\d+$/.test(desc) && desc.length > 5) {
+                // Futuramente podemos vincular código ao nome digitado aqui
+            }
 
             localStorage.setItem('carrinho', JSON.stringify(carrinho));
-            localStorage.setItem('dicionario', JSON.stringify(dicionario));
             navegar('telaInicial');
         }
     }
